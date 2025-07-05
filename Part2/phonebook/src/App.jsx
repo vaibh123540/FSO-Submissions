@@ -1,67 +1,72 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import numberService from './services/numbers'
+import Success from './components/Success'
+import PersonForm from './components/PersonForm'
+import Persons from './components/Persons'
+import Filter from './components/Filter'
+import Error from './components/Error'
 
-const Persons = (props) => {
-  if (props.newFilter === '') {
-    return (
-      <div>
-        {props.persons.map(person => <div key={person.id}>{person.name} {person.number}</div>)}
-      </div>
-    )
-  }
-  const filtered = props.persons.filter(person => person.name.toLowerCase().includes(props.newFilter.toLowerCase()))
-  return (
-    <div>
-    {filtered.map(person => <div key={person.id}>{person.name} {person.number}</div>)}
-    </div>
-  )
-}
-
-const Filter = (props) => {
-  return (
-    <div>
-      filter shown with<input value={props.filter} onChange={props.handleNewFilter}/>
-    </div>
-  )
-}
-
-const PersonForm = (props) => {
-  return (
-    <form onSubmit={props.addNewName}>
-      <div>
-        name: <input value={props.newName} onChange={props.handleNewName}/>
-      </div>
-      <div>
-        number: <input value={props.newNumber} onChange={props.handleNewNumber}/>
-      </div>
-      <div>
-        <button type="submit">add</button>
-      </div>
-    </form>
-  )
-}
 
 const App = () => {
-  const [persons, setPersons] = useState([
-    { name: 'Arto Hellas', number: '040-123456', id: 1 },
-    { name: 'Ada Lovelace', number: '39-44-5323523', id: 2 },
-    { name: 'Dan Abramov', number: '12-43-234345', id: 3 },
-    { name: 'Mary Poppendieck', number: '39-23-6423122', id: 4 }
-  ]) 
+  const [persons, setPersons] = useState([])
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState('')
   const [newFilter, setNewFilter] = useState('')
+  const [successMessage, setSuccessMessage] = useState(null)
+  const [errorMessage, setErrorMessage] = useState(null)
+  
+  useEffect(() => {
+    numberService
+      .getAll()
+      .then(persons => setPersons(persons))
+  },[])
 
   const addNewName = (e) => {
     e.preventDefault()
-
-    if (persons.map(person => person.name).includes(newName)) {
-      alert(`${newName} is already added to phonebook`)
+    const existingPerson = persons.find(p => p.name === newName)
+    if (existingPerson) {
+      if (confirm(`${newName} is already added to the Phonebook, replace the old number with a new one?`)) {
+        numberService
+          .update(existingPerson.id, {...existingPerson, number: newNumber})
+          .then(response => {
+            setPersons(persons.map(p => p.name === newName ? response.data : p))
+            setSuccessMessage(`Updated phone number of ${newName}`)
+            setNewName('')
+            setNewNumber('')
+            setTimeout(() => setSuccessMessage(null), 5000)
+          })
+          .catch(error => {
+            setErrorMessage(
+              `Information of ${newName} has already been removed from the server`
+            )
+            setTimeout(() => {
+              setErrorMessage(null)
+            }, 5000);
+            setPersons(persons.filter(person => person.id!==existingPerson.id))
+          })
+      }
     }
 
     else {
-    setPersons(persons.concat({name: newName, number: newNumber, id: persons.length+1}))
-    setNewName('')
-    setNewNumber('')
+      const newPerson = {name: newName, number: newNumber}
+      numberService
+        .create(newPerson)
+        .then(response => {
+          setPersons(persons.concat(response))
+          setSuccessMessage(`Added ${newName}`)
+          setNewName('')
+          setNewNumber('')
+          setTimeout(() => setSuccessMessage(null), 5000)
+        })
+    }
+  }
+
+  const handleDelete = person => {
+    const id = person.id
+    if (confirm(`Delete ${person.name}`)) {
+      numberService
+        .erase(id)
+        .then(setPersons(persons.filter(name => name.id !== id)))
     }
   }
 
@@ -80,11 +85,13 @@ const App = () => {
   return (
     <div>
       <h2>Phonebook</h2>
+      <Success successMessage={successMessage}/>
+      <Error errorMessage={errorMessage} />
       <Filter filter={newFilter} handleNewFilter={handleNewFilter} />
       <h2>add a new</h2>
       <PersonForm addNewName={addNewName} newName={newName} newNumber={newNumber} handleNewName={handleNewName} handleNewNumber={handleNewNumber} />
       <h2>Numbers</h2>
-      <Persons newFilter = {newFilter} persons = {persons} />
+      <Persons newFilter = {newFilter} persons = {persons} handleDelete = {handleDelete}/>
     </div>
   )
 }
