@@ -1,5 +1,6 @@
 const mongoose = require("mongoose")
 
+mongoose.set('runValidators', true);
 mongoose.set('strictQuery',false)
 
 const url = process.env.MONGODB_URI
@@ -13,8 +14,19 @@ mongoose.connect(url)
     })
 
 const personSchema = new mongoose.Schema({
-    name: String,
-    number: String,
+    name: {
+        type: String,
+        minLength: 3
+    },
+    number: {
+        type: String,
+        minLength: 8,
+        validate: {
+            validator: function(v) {
+                return /^\d{3}-\d+$/.test(v)
+            }
+        }
+    }
 })
 
 personSchema.set('toJSON', {
