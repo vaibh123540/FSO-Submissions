@@ -1,5 +1,13 @@
 import Blog from './Blog'
 import Success from './Success'
+import Togglable from './Togglable'
+import BlogForm from './BlogForm'
+
+const compareLikes = (a, b) => {
+    if (a.likes < b.likes) return 1
+    else if (a.likes > b.likes) return -1
+    return 0
+}
 
 const Blogs = (props) => {
     return(
@@ -11,17 +19,17 @@ const Blogs = (props) => {
         </div>
         <br />
         <div>
-            <form onSubmit={props.createNewBlog}>
-            <h2>Create New</h2>
-            <div>title <input value={props.title} onChange={({target}) => {props.setTitle(target.value)}}/></div>
-            <div>author <input value={props.author} onChange={({target}) => {props.setAuthor(target.value)}}/></div>
-            <div>url <input value={props.url} onChange={({target}) => {props.setUrl(target.value)}}/></div>
-            <button type='Submit'>create</button>
-            </form>
+            <Togglable buttonLabel='new blog' ref={props.blogFormRef}>
+                <BlogForm createNewBlog={props.createNewBlog}/>
+            </Togglable>
         </div>
         <div>
-            {props.blogs.map(blog =>
-                <Blog key={blog.id} blog={blog} />
+            {props.blogs.sort(compareLikes).map(blog =>
+                <Blog key={blog.id}
+                blog={blog}
+                likeBlog={props.likeBlog}
+                user={props.user}
+                removeBlog={props.removeBlog}/>
             )}
         </div>
         </div>

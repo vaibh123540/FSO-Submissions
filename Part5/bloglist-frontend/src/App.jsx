@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import blogService from './services/blogs'
 import Blogs from './components/Blogs'
 import Login from './components/Login'
@@ -9,11 +9,10 @@ const App = () => {
   const [user, setUser] = useState(null)
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
-  const [title, setTitle] = useState('')
-  const [author, setAuthor] = useState('')
-  const [url, setUrl] = useState('')
   const [errorMessage, setErrorMessage] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
+
+  const blogFormRef = useRef()
 
   useEffect(() => {
     blogService.getAll().then(blogs =>
@@ -56,19 +55,36 @@ const App = () => {
     }
   }
 
-  const createNewBlog = async (e) => {
-    e.preventDefault()
-
+  const createNewBlog = async (blog) => {
     try {
-      const newBlog = await blogService.create({ "title": title, "author": author, "url": url })
+      blogFormRef.current.toggleVisibility()
+      const newBlog = await blogService.create(blog)
       setBlogs(blogs.concat(newBlog))
-      setTitle('')
-      setAuthor('')
-      setUrl('')
       setSuccessMessage(`a new blog ${newBlog.title} by ${newBlog.author} added`)
       setTimeout(() => {
-        setSuccessMessage(null)
+          setSuccessMessage(null)
       }, 5000)
+    } catch(error) {
+      console.log(error)
+    }
+  }
+
+  const likeBlog = async (blog, id) => {
+    try {
+      blog.likes++
+      const updatedBlog = await blogService.update(blog, id)
+      setBlogs(blogs.map(b => b.id === id ? updatedBlog : b))
+    } catch(error) {
+      console.log(error)
+    }
+  }
+  
+  const removeBlog = async (blog) => {
+    try {
+      if (confirm(`Remove blog ${blog.title} by ${blog.author}`)) {
+        await blogService.remove(blog)
+        setBlogs(blogs.filter(b => b.id !== blog.id))
+      }
     } catch(error) {
       console.log(error)
     }
@@ -92,15 +108,12 @@ const App = () => {
           <Blogs
           blogs={blogs}
           user={user}
+          successMessage={successMessage}
           handleLogout={handleLogout}
-          title={title}
-          author={author}
-          url={url}
-          setTitle={setTitle}
-          setAuthor={setAuthor}
-          setUrl={setUrl}
           createNewBlog={createNewBlog}
-          successMessage={successMessage} />
+          blogFormRef={blogFormRef}
+          likeBlog={likeBlog}
+          removeBlog={removeBlog} />
         )
       }
       
