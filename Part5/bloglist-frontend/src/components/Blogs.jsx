@@ -23,7 +23,7 @@ const Blogs = (props) => {
                 <BlogForm createNewBlog={props.createNewBlog}/>
             </Togglable>
         </div>
-        <div>
+        <div className='blogList'>
             {props.blogs.sort(compareLikes).map(blog =>
                 <Blog key={blog.id}
                 blog={blog}
