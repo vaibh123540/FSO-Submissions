@@ -1,0 +1,9 @@
+# Ignore artifacts:
+build
+coverage
+node_modules
+README.md
+dist
+.eslintrc.cjs
+vite.config.js
+.prettierrc
